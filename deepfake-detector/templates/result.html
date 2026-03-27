@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Details - DeepFake Detector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        .detail-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 30px;
+            color: #6366f1;
+            text-decoration: none;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .detail-card {
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .detail-header {
+            padding: 30px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+        
+        .detail-header h1 {
+            margin-bottom: 10px;
+        }
+        
+        .detail-body {
+            padding: 30px;
+        }
+        
+        .info-row {
+            display: flex;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .info-label {
+            width: 150px;
+            font-weight: 600;
+            color: #475569;
+        }
+        
+        .info-value {
+            flex: 1;
+            color: #0f172a;
+            word-break: break-word;
+        }
+        
+        .score-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .score-name {
+            width: 120px;
+            font-weight: 500;
+        }
+        
+        .score-bar {
+            flex: 1;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 15px;
+        }
+        
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6366f1, #8b5cf6);
+            border-radius: 4px;
+        }
+        
+        .card-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        
+        .card-badge.fake {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .card-badge.real {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-export-pdf {
+            width: 100%;
+            padding: 14px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .btn-export-pdf:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+        
+        .reasoning-box {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border-left: 4px solid #6366f1;
+        }
+        
+        .reasoning-box strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #0f172a;
+        }
+        
+        @media (max-width: 768px) {
+            .info-row {
+                flex-direction: column;
+            }
+            
+            .info-label {
+                width: auto;
+                margin-bottom: 5px;
+            }
+            
+            .score-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .score-bar {
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="detail-container">
+            <a href="/history" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to History
+            </a>
+            
+            <div class="detail-card">
+                <div class="detail-header">
+                    <h1>Analysis Details</h1>
+                    <div id="resultStatus">
+                        <span class="card-badge {{ 'fake' if result.is_fake else 'real' }}">
+                            {{ '⚠️ DEEPFAKE DETECTED' if result.is_fake else '✅ AUTHENTIC MEDIA' }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="detail-body">
+                    <!-- Result ID (for debugging) -->
+                    <div class="info-row">
+                        <div class="info-label">Result ID</div>
+                        <div class="info-value">{{ result.result_id or 'Not available' }}</div>
+                    </div>
+                    
+                    <!-- File Information -->
+                    <div class="info-row">
+                        <div class="info-label">Filename</div>
+                        <div class="info-value">{{ result.filename or 'Unknown' }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Media Type</div>
+                        <div class="info-value">{{ result.media_type or 'image' }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Analysis Time</div>
+                        <div class="info-value">{{ result.analysis_time[:19].replace('T', ' ') if result.analysis_time else 'Unknown' }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Confidence</div>
+                        <div class="info-value">{{ (result.confidence * 100)|round(1) if result.confidence else '0' }}%</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Probability</div>
+                        <div class="info-value">{{ (result.probability * 100)|round(1) if result.probability else '0' }}%</div>
+                    </div>
+                    
+                    <!-- Video Specific Info -->
+                    {% if result.frames_analyzed %}
+                    <div class="info-row">
+                        <div class="info-label">Frames Analyzed</div>
+                        <div class="info-value">{{ result.frames_analyzed }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Consistency</div>
+                        <div class="info-value">{{ (result.consistency * 100)|round(1) if result.consistency else '0' }}%</div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Model Scores -->
+                    {% if result.scores %}
+                    <div style="margin: 30px 0 20px;">
+                        <h3 style="margin-bottom: 15px;">Model Scores</h3>
+                        {% for model, score in result.scores.items() %}
+                        <div class="score-item">
+                            <div class="score-name">{{ model|capitalize }}</div>
+                            <div class="score-bar">
+                                <div class="score-fill" style="width: {{ score * 100 }}%"></div>
+                            </div>
+                            <div>{{ (score * 100)|round(1) }}%</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Reasoning -->
+                    {% if result.reasoning %}
+                    <div class="reasoning-box">
+                        <strong><i class="fas fa-lightbulb"></i> Analysis Reasoning</strong>
+                        <p>{{ result.reasoning }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Download PDF Button -->
+                    <button class="btn-export-pdf" onclick="exportPDF('{{ result.result_id }}')">
+                        <i class="fas fa-file-pdf"></i> Download PDF Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function exportPDF(resultId) {
+            if (!resultId) {
+                alert('Result ID not found');
+                return;
+            }
+            
+            // Show loading on button
+            const btn = event.target.closest('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+            btn.disabled = true;
+            
+            fetch(`/api/export-pdf/${resultId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('PDF generation failed');
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `deepfake_report_${resultId}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    showNotification('PDF report downloaded successfully!', 'success');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Failed to generate PDF report', 'error');
+                })
+                .finally(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+        }
+        
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.classList.add('show'), 10);
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

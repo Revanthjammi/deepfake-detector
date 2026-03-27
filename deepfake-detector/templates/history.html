@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History - DeepFake Detector</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <style>
+        /* History Page Specific Styles */
+        .history-header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border-radius: 24px;
+            padding: 40px 32px;
+            margin-bottom: 40px;
+            color: white;
+        }
+        
+        .history-header h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        
+        .history-header p {
+            opacity: 0.9;
+        }
+        
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 8px;
+        }
+        
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        .filter-bar {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 8px 20px;
+            border-radius: 30px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .filter-btn.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+        
+        .search-box input {
+            padding: 10px 40px 10px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 30px;
+            width: 250px;
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+        
+        .history-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s;
+        }
+        
+        .history-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .card-icon.fake {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+        
+        .card-icon.real {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+        
+        .card-info {
+            flex: 1;
+        }
+        
+        .card-filename {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .card-meta {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        
+        .card-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .card-badge.fake {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .card-badge.real {
+            background: #10b981;
+            color: white;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .confidence-meter {
+            margin-bottom: 16px;
+        }
+        
+        .meter-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+        
+        .meter-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .meter-fill {
+            height: 100%;
+            transition: width 0.5s;
+        }
+        
+        .meter-fill.fake {
+            background: linear-gradient(90deg, #f59e0b, #ef4444);
+        }
+        
+        .meter-fill.real {
+            background: linear-gradient(90deg, #10b981, #34d399);
+        }
+        
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .stat-item-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+        }
+        
+        .stat-item-value {
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        
+        .card-footer {
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 12px;
+        }
+        
+        .btn-view, .btn-export {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-view {
+            background: #6366f1;
+            color: white;
+        }
+        
+        .btn-view:hover {
+            background: #4f46e5;
+        }
+        
+        .btn-export {
+            background: white;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+        }
+        
+        .btn-export:hover {
+            background: #f1f5f9;
+            border-color: #6366f1;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 40px;
+        }
+        
+        .page-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .page-btn.active {
+            background: #6366f1;
+            color: white;
+            border-color: #6366f1;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            background: white;
+            border-radius: 24px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .empty-state i {
+            font-size: 80px;
+            color: #cbd5e1;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-bar {
+                flex-direction: column;
+            }
+            
+            .search-box input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header id="mainHeader">
+        <div class="header-content">
+            <a href="/" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="logo-text">DeepFake Detector</div>
+                <span class="logo-badge">90%+</span>
+            </a>
+            
+            <nav>
+                <a href="/" class="nav-link">Home</a>
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/history" class="nav-link active">History</a>
+            </nav>
+            
+            <div class="model-status" id="modelStatus">
+                <div class="status-dot"></div>
+                <div class="status-text">4 Models Active</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- History Header -->
+        <div class="history-header">
+            <h1><i class="fas fa-history"></i> Analysis History</h1>
+            <p>View and manage all your past deepfake detection analyses</p>
+        </div>
+
+        <!-- Stats Summary -->
+        <div class="stats-summary" id="statsSummary">
+            <div class="stat-card">
+                <i class="fas fa-chart-line" style="font-size: 24px; color: #6366f1;"></i>
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">Total Analyses</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-exclamation-triangle" style="font-size: 24px; color: #ef4444;"></i>
+                <div class="stat-number" id="fakeCount">0</div>
+                <div class="stat-label">DeepFakes</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-check-circle" style="font-size: 24px; color: #10b981;"></i>
+                <div class="stat-number" id="realCount">0</div>
+                <div class="stat-label">Authentic</div>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-percentage" style="font-size: 24px; color: #f59e0b;"></i>
+                <div class="stat-number" id="avgConfidence">0%</div>
+                <div class="stat-label">Avg Confidence</div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="fake">DeepFakes</button>
+                <button class="filter-btn" data-filter="real">Authentic</button>
+                <button class="filter-btn" data-filter="image">Images</button>
+                <button class="filter-btn" data-filter="video">Videos</button>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search by filename...">
+                <i class="fas fa-search"></i>
+            </div>
+        </div>
+
+        <!-- Results Grid -->
+        <div id="resultsGrid" class="results-grid">
+            <div class="empty-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <h3>Loading History...</h3>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <script>
+        let allResults = [];
+        let currentFilter = 'all';
+        let currentSearch = '';
+        let currentPage = 1;
+        const itemsPerPage = 9;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadResults();
+            setupEventListeners();
+        });
+
+        async function loadResults() {
+            try {
+                const response = await fetch('/api/results?limit=100');
+                const data = await response.json();
+                allResults = data.results || [];
+                updateStats();
+                renderResults();
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('resultsGrid').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <h3>Error Loading Results</h3>
+                        <button class="btn-view" onclick="loadResults()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        function updateStats() {
+            const total = allResults.length;
+            const fake = allResults.filter(r => r.is_fake).length;
+            const real = total - fake;
+            const avgConf = total > 0 ? allResults.reduce((sum, r) => sum + (r.confidence || 0), 0) / total * 100 : 0;
+            
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('fakeCount').textContent = fake;
+            document.getElementById('realCount').textContent = real;
+            document.getElementById('avgConfidence').textContent = avgConf.toFixed(1) + '%';
+        }
+
+        function filterResults() {
+            let filtered = [...allResults];
+            
+            if (currentFilter !== 'all') {
+                if (currentFilter === 'fake') filtered = filtered.filter(r => r.is_fake);
+                else if (currentFilter === 'real') filtered = filtered.filter(r => !r.is_fake);
+                else if (currentFilter === 'image') filtered = filtered.filter(r => r.media_type === 'image');
+                else if (currentFilter === 'video') filtered = filtered.filter(r => r.media_type === 'video');
+            }
+            
+            if (currentSearch) {
+                const searchLower = currentSearch.toLowerCase();
+                filtered = filtered.filter(r => r.filename?.toLowerCase().includes(searchLower));
+            }
+            
+            return filtered;
+        }
+
+        function renderResults() {
+            const filtered = filterResults();
+            const totalPages = Math.ceil(filtered.length / itemsPerPage);
+            const start = (currentPage - 1) * itemsPerPage;
+            const paginated = filtered.slice(start, start + itemsPerPage);
+            
+            const grid = document.getElementById('resultsGrid');
+            
+            if (paginated.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>No Results Found</h3>
+                        <p>${currentSearch ? 'Try a different search term.' : 'Upload a file to get started!'}</p>
+                        <a href="/" class="btn-view" style="display: inline-block; text-decoration: none;">Upload Now</a>
+                    </div>
+                `;
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+            
+            grid.innerHTML = paginated.map(result => createCard(result)).join('');
+            renderPagination(totalPages);
+        }
+
+        function createCard(result) {
+            const isFake = result.is_fake;
+            const confidence = (result.confidence * 100).toFixed(1);
+            const probability = (result.probability * 100).toFixed(1);
+            const time = new Date(result.analysis_time).toLocaleString();
+            const filename = result.filename || 'Unknown';
+            const mediaType = result.media_type || 'image';
+            const resultId = result.result_id || result.saved_file?.replace('.json', '') || 'unknown';
+
+            return `
+                <div class="history-card">
+                    <div class="card-header">
+                        <div class="card-icon ${isFake ? 'fake' : 'real'}">
+                            <i class="fas ${isFake ? 'fa-exclamation-triangle' : 'fa-check-circle'}"></i>
+                        </div>
+                        <div class="card-info">
+                            <div class="card-filename">${escapeHtml(truncateText(filename,20 ))}</div>
+                            <div class="card-meta">
+                                <i class="fas ${mediaType === 'video' ? 'fa-video' : 'fa-image'}"></i> ${mediaType}
+                                <i class="far fa-clock"></i> ${time}
+                            </div>
+                        </div>
+                        <div class="card-badge ${isFake ? 'fake' : 'real'}">
+                            ${isFake ? 'FAKE' : 'REAL'}
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="confidence-meter">
+                            <div class="meter-header">
+                                <span>Confidence</span>
+                                <span>${confidence}%</span>
+                            </div>
+                            <div class="meter-bar">
+                                <div class="meter-fill ${isFake ? 'fake' : 'real'}" style="width: ${confidence}%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="stats-row">
+                            <div class="stat-item">
+                                <div class="stat-item-label">Probability</div>
+                                <div class="stat-item-value">${probability}%</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-item-label">File Size</div>
+                                <div class="stat-item-value">${result.file_info?.size_mb || 'N/A'} MB</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer">
+                        <button class="btn-view" onclick="viewDetails('${resultId}')">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                        <button class="btn-export" onclick="exportPDF('${resultId}')">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function viewDetails(resultId) {
+            window.open(`/result/${resultId}`, '_blank');
+        }
+
+        async function exportPDF(resultId) {
+            try {
+                // Show loading
+                const btn = event.target.closest('button');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+                btn.disabled = true;
+                
+                // Download PDF
+                const response = await fetch(`/api/export-pdf/${resultId}`);
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `deepfake_report_${resultId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // Reset button
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                
+                showNotification('PDF report downloaded successfully!', 'success');
+            } catch (error) {
+                console.error('PDF export error:', error);
+                showNotification('Failed to generate PDF', 'error');
+                const btn = event.target.closest('button');
+                btn.innerHTML = '<i class="fas fa-file-pdf"></i> Export PDF';
+                btn.disabled = false;
+            }
+        }
+
+        function renderPagination(totalPages) {
+            const pagination = document.getElementById('pagination');
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let html = '';
+            html += `<button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+            
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+            }
+            
+            html += `<button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
+            pagination.innerHTML = html;
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            renderResults();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function setupEventListeners() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    currentPage = 1;
+                    renderResults();
+                });
+            });
+            
+            let searchTimeout;
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    currentSearch = e.target.value;
+                    currentPage = 1;
+                    renderResults();
+                }, 300);
+            });
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.classList.add('show'), 10);
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function truncateText(text, maxLength) {
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - DeepFake Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Additional dashboard styles */
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card-dashboard {
+            background: var(--bg-card);
+            backdrop-filter: var(--blur-bg);
+            border-radius: 20px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card-dashboard:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        
+        .stat-header i {
+            font-size: 32px;
+            color: var(--primary);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .stat-trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+            margin-top: 8px;
+        }
+        
+        .trend-up {
+            color: var(--danger);
+        }
+        
+        .trend-down {
+            color: var(--success);
+        }
+        
+        .recent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .recent-item-dashboard {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            transition: all 0.3s;
+        }
+        
+        .recent-item-dashboard:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(5px);
+        }
+        
+        .recent-badge {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .recent-badge.fake {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+        
+        .recent-badge.real {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+        
+        .recent-info-dashboard {
+            flex: 1;
+        }
+        
+        .recent-filename {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .recent-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 12px;
+        }
+        
+        .recent-confidence {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        .recent-confidence.fake {
+            color: var(--danger);
+        }
+        
+        .recent-confidence.real {
+            color: var(--success);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .insight-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(236, 72, 153, 0.1));
+            border-radius: 20px;
+            padding: 24px;
+            margin-top: 24px;
+            border: 1px solid var(--border);
+        }
+        
+        .insight-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .insight-text {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        .model-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .model-tag {
+            background: rgba(99, 102, 241, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <div class="logo-icon">📊</div>
+                    <div class="logo-text">DeepFake Dashboard</div>
+                </a>
+                
+                <nav>
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/dashboard" class="nav-link active">Dashboard</a>
+                    <a href="/history" class="nav-link">History</a>
+                </nav>
+                
+                <div class="model-status" id="modelStatus">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <main>
+            <div class="hero" style="padding: 40px 20px; margin-bottom: 30px;">
+                <h1>Analytics Dashboard</h1>
+                <p>View your detection statistics and insights</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="dashboard-stats">
+                <div class="stat-card-dashboard">
+                    <div class="stat-header">
+                        <i class="fas fa-chart-line"></i>
+                        <span class="stat-trend" id="trendIndicator">-</span>
+                    </div>
+                    <div class="stat-number" id="totalAnalyses">0</div>
+                    <div class="stat-label">Total Analyses</div>
+                </div>
+                
+                <div class="stat-card-dashboard">
+                    <div class="stat-header">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-number" id="fakeCount">0</div>
+                    <div class="stat-label">DeepFakes Detected</div>
+                </div>
+                
+                <div class="stat-card-dashboard">
+                    <div class="stat-header">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-number" id="realCount">0</div>
+                    <div class="stat-label">Authentic Media</div>
+                </div>
+                
+                <div class="stat-card-dashboard">
+                    <div class="stat-header">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="stat-number" id="avgConfidence">0%</div>
+                    <div class="stat-label">Average Confidence</div>
+                </div>
+            </div>
+
+            <!-- Model Performance -->
+            <div class="results-section" style="margin-bottom: 30px;">
+                <div class="section-header">
+                    <h2><i class="fas fa-microchip"></i> Model Performance</h2>
+                    <span class="badge">4-Model Ensemble</span>
+                </div>
+                <div id="modelMetrics" class="model-list">
+                    <div class="loading-placeholder">Loading model data...</div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="recent-results">
+                <div class="section-header">
+                    <h2><i class="fas fa-history"></i> Recent Activity</h2>
+                    <a href="/history" class="btn-icon">View All <i class="fas fa-arrow-right"></i></a>
+                </div>
+                <div id="activityList" class="recent-list">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No activity yet. Upload some files to see results here!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insights -->
+            <div class="insight-card">
+                <div class="insight-title">
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Detection Insights</span>
+                </div>
+                <div class="insight-text" id="insightText">
+                    Loading insights...
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <p>DeepFake Detector Dashboard | Real-time analytics</p>
+        </footer>
+    </div>
+
+    <script>
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                const response = await fetch('/api/results?limit=50');
+                const data = await response.json();
+                const results = data.results || [];
+                
+                updateStats(results);
+                updateModelMetrics(results);
+                updateActivityList(results);
+                updateInsights(results);
+                updateModelStatus();
+                
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                document.getElementById('activityList').innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>Error loading data. Please refresh the page.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function updateStats(results) {
+            const total = results.length;
+            const fake = results.filter(r => r.is_fake).length;
+            const real = total - fake;
+            const avgConf = total > 0 ? results.reduce((sum, r) => sum + (r.confidence || 0), 0) / total * 100 : 0;
+            
+            document.getElementById('totalAnalyses').textContent = total;
+            document.getElementById('fakeCount').textContent = fake;
+            document.getElementById('realCount').textContent = real;
+            document.getElementById('avgConfidence').textContent = avgConf.toFixed(1) + '%';
+            
+            // Calculate trend (compare last 10 vs previous 10)
+            if (results.length > 20) {
+                const recent10 = results.slice(0, 10);
+                const previous10 = results.slice(10, 20);
+                const recentFake = recent10.filter(r => r.is_fake).length;
+                const previousFake = previous10.filter(r => r.is_fake).length;
+                
+                const trendElement = document.getElementById('trendIndicator');
+                if (recentFake > previousFake) {
+                    trendElement.innerHTML = '<i class="fas fa-arrow-up"></i> +' + (recentFake - previousFake);
+                    trendElement.className = 'stat-trend trend-up';
+                } else if (recentFake < previousFake) {
+                    trendElement.innerHTML = '<i class="fas fa-arrow-down"></i> ' + (recentFake - previousFake);
+                    trendElement.className = 'stat-trend trend-down';
+                } else {
+                    trendElement.innerHTML = '<i class="fas fa-minus"></i> 0';
+                    trendElement.className = 'stat-trend';
+                }
+            }
+        }
+        
+        function updateModelMetrics(results) {
+            // Calculate model performance based on confidence consistency
+            const modelNames = ['swinv2', 'efficientnet', 'xception', 'vit'];
+            const metrics = {};
+            
+            for (const model of modelNames) {
+                metrics[model] = { scores: [], count: 0 };
+            }
+            
+            for (const result of results) {
+                if (result.scores) {
+                    for (const [model, score] of Object.entries(result.scores)) {
+                        if (metrics[model]) {
+                            metrics[model].scores.push(score);
+                            metrics[model].count++;
+                        }
+                    }
+                }
+            }
+            
+            const metricsGrid = document.getElementById('modelMetrics');
+            
+            if (Object.values(metrics).some(m => m.count > 0)) {
+                metricsGrid.innerHTML = Object.entries(metrics).map(([model, data]) => {
+                    const avgScore = data.count > 0 ? (data.scores.reduce((a, b) => a + b, 0) / data.count) * 100 : 0;
+                    const modelName = getModelName(model);
+                    const color = avgScore > 70 ? '#f44336' : avgScore > 50 ? '#ff9800' : '#4CAF50';
+                    
+                    return `
+                        <div class="model-tag" style="border-left: 3px solid ${color}">
+                            <strong>${modelName}</strong>
+                            <span style="margin-left: 8px; font-size: 0.8rem; color: ${color}">
+                                ${avgScore.toFixed(1)}% avg detection
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                metricsGrid.innerHTML = `
+                    <div class="loading-placeholder">
+                        <i class="fas fa-chart-simple"></i>
+                        <p>Analyze some images to see model performance</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function updateActivityList(results) {
+            const activityList = document.getElementById('activityList');
+            const recent = results.slice(0, 10);
+            
+            if (recent.length === 0) {
+                activityList.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No activity yet. Upload some files to see results here!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            activityList.innerHTML = recent.map(result => {
+                const isFake = result.is_fake;
+                const confidence = (result.confidence * 100).toFixed(1);
+                const time = new Date(result.analysis_time).toLocaleString();
+                const filename = result.filename || 'Unknown';
+                
+                return `
+                    <div class="recent-item-dashboard" onclick="viewResult('${result.result_id || ''}')" style="cursor: pointer;">
+                        <div class="recent-badge ${isFake ? 'fake' : 'real'}">
+                            <i class="fas ${isFake ? 'fa-exclamation-triangle' : 'fa-check-circle'}"></i>
+                        </div>
+                        <div class="recent-info-dashboard">
+                            <div class="recent-filename">${truncateText(filename, 40)}</div>
+                            <div class="recent-meta">
+                                <span><i class="far fa-clock"></i> ${time}</span>
+                                <span><i class="fas ${result.media_type === 'video' ? 'fa-video' : 'fa-image'}"></i> ${result.media_type || 'image'}</span>
+                            </div>
+                        </div>
+                        <div class="recent-confidence ${isFake ? 'fake' : 'real'}">
+                            ${confidence}%
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function updateInsights(results) {
+            const insightText = document.getElementById('insightText');
+            const total = results.length;
+            const fakeCount = results.filter(r => r.is_fake).length;
+            const realCount = total - fakeCount;
+            
+            if (total === 0) {
+                insightText.innerHTML = 'Upload your first image or video to start detecting deepfakes. The system will analyze media and provide detailed insights here.';
+                return;
+            }
+            
+            const fakePercentage = (fakeCount / total * 100).toFixed(1);
+            const avgConfidence = (results.reduce((sum, r) => sum + (r.confidence || 0), 0) / total * 100).toFixed(1);
+            
+            let insight = '';
+            
+            if (fakePercentage > 50) {
+                insight = `⚠️ ${fakePercentage}% of your uploaded media has been detected as deepfakes. This is a high percentage - be cautious about the content you're viewing.`;
+            } else if (fakePercentage > 20) {
+                insight = `📊 ${fakePercentage}% of your uploaded media shows signs of AI generation. The system is detecting deepfakes with ${avgConfidence}% average confidence.`;
+            } else {
+                insight = `✅ Most of your uploaded media (${100 - fakePercentage}%) appears authentic. The system is detecting with ${avgConfidence}% average confidence.`;
+            }
+            
+            if (fakeCount > 0) {
+                insight += ` The system has successfully identified ${fakeCount} potential deepfakes.`;
+            }
+            
+            insightText.innerHTML = insight;
+        }
+        
+        async function updateModelStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                const modelStatus = document.getElementById('modelStatus');
+                if (data.models_loaded > 0) {
+                    modelStatus.innerHTML = `
+                        <span class="status-dot"></span>
+                        <span>${data.models_loaded} Models Active</span>
+                    `;
+                } else {
+                    modelStatus.innerHTML = `
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Loading Models...</span>
+                    `;
+                }
+            } catch (error) {
+                console.error('Status check failed:', error);
+            }
+        }
+        
+        function getModelName(modelKey) {
+            const names = {
+                'swinv2': 'SwinV2',
+                'efficientnet': 'EfficientNet',
+                'xception': 'XceptionNet',
+                'vit': 'Vision Transformer'
+            };
+            return names[modelKey] || modelKey;
+        }
+        
+        function truncateText(text, maxLength) {
+            if (!text) return 'Unknown';
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+        
+        function viewResult(resultId) {
+            if (resultId) {
+                window.location.href = `/result/${resultId}`;
+            }
+        }
+        
+        // Load data on page load
+        loadDashboardData();
+        
+        // Refresh every 30 seconds
+        setInterval(loadDashboardData, 30000);
+    </script>
+</body>
+</html>
